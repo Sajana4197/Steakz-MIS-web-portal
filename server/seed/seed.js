@@ -10,6 +10,7 @@ await connectDB();
 
 console.log("Seeding sample data...");
 
+// Clear existing data
 await Promise.all([
   User.deleteMany({}),
   Branch.deleteMany({}),
@@ -17,13 +18,15 @@ await Promise.all([
   Sale.deleteMany({}),
 ]);
 
+// Create branches
 const branches = await Branch.insertMany([
   { name: "Colombo City", location: "Colombo 03" },
   { name: "Kandy Hills", location: "Kandy" },
 ]);
 const [colombo, kandy] = branches;
 
-await User.insertMany([
+// Create users with proper password hashing
+const users = [
   { username: "admin", password: "admin123", role: "admin" },
   {
     username: "manager_colombo",
@@ -43,14 +46,24 @@ await User.insertMany([
     role: "manager",
     branch: kandy._id,
   },
-]);
+];
 
+// Save users individually to trigger pre-save hook for password hashing
+for (const userData of users) {
+  const user = new User(userData);
+  await user.save();
+}
+
+console.log("Users created with hashed passwords");
+
+// Create inventory items
 await Inventory.insertMany([
   { itemName: "Ribeye Steak", quantity: 50, branch: colombo._id },
   { itemName: "T-Bone Steak", quantity: 35, branch: colombo._id },
   { itemName: "Chicken Breast", quantity: 80, branch: kandy._id },
 ]);
 
+// Create sales data
 const today = new Date();
 const days = [0, 1, 2, 3, 4, 5, 6];
 await Sale.insertMany(
@@ -76,5 +89,5 @@ await Sale.insertMany(
   ])
 );
 
-console.log("Seed completed.");
+console.log("Seed completed successfully.");
 process.exit(0);

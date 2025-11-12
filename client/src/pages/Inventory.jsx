@@ -119,4 +119,9 @@ const btnDanger = {
   border: "none",
   color: "#fff",
 };
-const link = { color: "#93c5fd", textDecoration: "none" };
+
+const link = {
+  color: "#22c55e",
+  textDecoration: "none",
+  fontWeight: 500,
+};
