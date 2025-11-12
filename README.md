@@ -26,11 +26,6 @@ A modern, full-stack Management Information System designed for Steakz Restauran
 - [User Roles & Access](#user-roles--access)
 - [Demo Credentials](#demo-credentials)
 - [Project Structure](#project-structure)
-- [API Documentation](#api-documentation)
-- [Screenshots](#screenshots)
-- [Contributing](#contributing)
-- [License](#license)
-
 ---
 
 ## ✨ Features
