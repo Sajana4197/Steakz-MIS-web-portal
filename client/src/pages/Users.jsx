@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import api from "../services/api";
 import { getUser } from "../services/auth";
 import { Link } from "react-router-dom";
+import PasswordInput from "../components/PasswordInput";
+import { useToast } from "../hooks/useToast";
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -14,7 +16,9 @@ export default function Users() {
   const [branches, setBranches] = useState([]);
   const [editingPassword, setEditingPassword] = useState(null);
   const [newPassword, setNewPassword] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const currentUser = getUser();
+  const { showSuccess, showError, showWarning } = useToast();
 
   useEffect(() => {
     loadData();
@@ -34,6 +38,7 @@ export default function Users() {
       setBranches(uniq);
     } catch (error) {
       console.error("Failed to load data:", error);
+      showError("Failed to load users data");
     }
   };
 
@@ -43,51 +48,85 @@ export default function Users() {
       await api.post("/users", form);
       setForm({ username: "", password: "", role: "employee", branchId: "" });
       loadData();
+      showSuccess(`User "${form.username}" created successfully!`);
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to create user");
+      showError(error.response?.data?.message || "Failed to create user");
     }
   };
 
   const delUser = async (userId, username) => {
-    // Prevent admin from deleting themselves
     if (currentUser.username === username) {
-      alert("You cannot delete yourself!");
+      showWarning("You cannot delete yourself!");
       return;
     }
 
-    if (confirm(`Are you sure you want to delete user "${username}"?`)) {
-      try {
-        await api.delete("/users/" + userId);
-        loadData();
-      } catch (error) {
-        alert(error.response?.data?.message || "Failed to delete user");
-      }
+    setConfirmDelete({ userId, username });
+  };
+
+  const confirmDeleteUser = async () => {
+    try {
+      await api.delete("/users/" + confirmDelete.userId);
+      showSuccess(`User "${confirmDelete.username}" deleted successfully`);
+      setConfirmDelete(null);
+      loadData();
+    } catch (error) {
+      showError(error.response?.data?.message || "Failed to delete user");
     }
   };
 
   const handlePasswordReset = async (userId, username) => {
     if (!newPassword || newPassword.length < 6) {
-      alert("Password must be at least 6 characters long");
+      showWarning("Password must be at least 6 characters long");
       return;
     }
 
     try {
       await api.put(`/users/${userId}/password`, { password: newPassword });
-      alert(`Password updated successfully for ${username}`);
+      showSuccess(`Password updated successfully for ${username}`);
       setEditingPassword(null);
       setNewPassword("");
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to update password");
+      showError(error.response?.data?.message || "Failed to update password");
     }
   };
 
   return (
     <div style={container}>
+      {/* Confirmation Modal */}
+      {confirmDelete && (
+        <div style={modalOverlay} onClick={() => setConfirmDelete(null)}>
+          <div style={modalBox} onClick={(e) => e.stopPropagation()}>
+            <div style={modalIcon}>⚠️</div>
+            <h3 style={modalTitle}>Delete User</h3>
+            <p style={modalMessage}>
+              Are you sure you want to delete user{" "}
+              <strong>"{confirmDelete.username}"</strong>?
+              <br />
+              This action cannot be undone.
+            </p>
+            <div style={modalButtons}>
+              <button
+                onClick={() => setConfirmDelete(null)}
+                style={modalCancelBtn}
+              >
+                Cancel
+              </button>
+              <button onClick={confirmDeleteUser} style={modalDeleteBtn}>
+                Delete User
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={header}>
         <Link to="/dashboard" style={backBtn}>
           <span>←</span> Back to Dashboard
         </Link>
-        <h1 style={pageTitle}>👥 User Management</h1>
+        <div style={titleContainer}>
+          <span style={titleIcon}>👥</span>
+          <h1 style={pageTitle}>User Management</h1>
+        </div>
       </div>
 
       <form onSubmit={add} style={formCard}>
@@ -105,14 +144,13 @@ export default function Users() {
           </div>
           <div style={inputGroup}>
             <label style={label}>Password</label>
-            <input
-              type="password"
-              placeholder="Enter password"
+            <PasswordInput
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              style={inp}
+              placeholder="Enter password"
+              showRequirements={true}
               required
-              minLength="6"
+              minLength={6}
             />
           </div>
           <div style={inputGroup}>
@@ -192,13 +230,13 @@ export default function Users() {
                     <div style={actionButtons}>
                       {editingPassword === u._id ? (
                         <div style={passwordResetBox}>
-                          <input
-                            type="password"
-                            placeholder="New password"
+                          <PasswordInput
                             value={newPassword}
                             onChange={(e) => setNewPassword(e.target.value)}
-                            style={passwordInput}
-                            minLength="6"
+                            placeholder="New password"
+                            showRequirements={true}
+                            minLength={6}
+                            style={passwordInputSmall}
                           />
                           <button
                             onClick={() =>
@@ -262,6 +300,93 @@ export default function Users() {
   );
 }
 
+// Modal styles
+const modalOverlay = {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  background: "rgba(0, 0, 0, 0.7)",
+  backdropFilter: "blur(4px)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 9999,
+  animation: "fadeIn 0.2s ease-out",
+};
+
+const modalBox = {
+  background: "rgba(17, 24, 39, 0.95)",
+  backdropFilter: "blur(20px)",
+  padding: "32px",
+  borderRadius: "16px",
+  border: "1px solid rgba(255, 255, 255, 0.1)",
+  boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)",
+  maxWidth: "420px",
+  width: "90%",
+  animation: "scaleIn 0.2s ease-out",
+};
+
+const modalIcon = {
+  fontSize: "48px",
+  textAlign: "center",
+  marginBottom: "16px",
+};
+
+const modalTitle = {
+  fontSize: "24px",
+  fontWeight: "700",
+  color: "#e2e8f0",
+  textAlign: "center",
+  marginBottom: "12px",
+  marginTop: 0,
+};
+
+const modalMessage = {
+  fontSize: "15px",
+  color: "#94a3b8",
+  textAlign: "center",
+  lineHeight: "1.6",
+  marginBottom: "24px",
+};
+
+const modalButtons = {
+  display: "flex",
+  gap: "12px",
+};
+
+const modalCancelBtn = {
+  flex: 1,
+  padding: "12px",
+  borderRadius: "10px",
+  background: "rgba(100, 116, 139, 0.2)",
+  border: "1px solid rgba(100, 116, 139, 0.3)",
+  color: "#cbd5e1",
+  fontSize: "15px",
+  fontWeight: "600",
+  cursor: "pointer",
+};
+
+const modalDeleteBtn = {
+  flex: 1,
+  padding: "12px",
+  borderRadius: "10px",
+  background: "linear-gradient(135deg, #ef4444, #dc2626)",
+  border: "none",
+  color: "#fff",
+  fontSize: "15px",
+  fontWeight: "600",
+  cursor: "pointer",
+  boxShadow: "0 4px 15px rgba(239, 68, 68, 0.3)",
+};
+
+const passwordInputSmall = {
+  padding: "8px 40px 8px 12px",
+  fontSize: "13px",
+};
+
+// ... (keep all other existing styles from previous version)
 const container = {
   padding: "32px",
   minHeight: "100vh",
@@ -295,6 +420,17 @@ const pageTitle = {
   background: "linear-gradient(135deg, #fff, #cbd5e1)",
   WebkitBackgroundClip: "text",
   WebkitTextFillColor: "transparent",
+};
+
+const titleContainer = {
+  display: "flex",
+  alignItems: "center",
+  gap: "16px",
+  marginTop: "16px",
+};
+
+const titleIcon = {
+  fontSize: "42px",
 };
 
 const formCard = {
@@ -347,8 +483,8 @@ const inp = {
 };
 
 const createBtn = {
-  width: "100%",
-  padding: "12px 24px",
+  width: "auto",
+  padding: "12px 32px",
   borderRadius: "10px",
   background: "linear-gradient(135deg, #22c55e, #10b981)",
   color: "#fff",
@@ -361,6 +497,7 @@ const createBtn = {
   justifyContent: "center",
   gap: "8px",
   boxShadow: "0 4px 15px rgba(34, 197, 94, 0.3)",
+  margin: "0 auto",
 };
 
 const tableCard = {
@@ -514,17 +651,7 @@ const passwordResetBox = {
   display: "flex",
   gap: "8px",
   alignItems: "center",
-};
-
-const passwordInput = {
-  padding: "8px 12px",
-  borderRadius: "8px",
-  border: "1px solid rgba(255, 255, 255, 0.1)",
-  background: "rgba(15, 23, 42, 0.5)",
-  color: "#e2e8f0",
-  fontSize: "13px",
-  outline: "none",
-  width: "150px",
+  flexWrap: "wrap",
 };
 
 const saveBtn = {

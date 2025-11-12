@@ -25,6 +25,30 @@ router.post("/", auth, authorize("admin"), async (req, res) => {
   res.status(201).json({ message: "User created" });
 });
 
+// Password reset endpoint
+router.put("/:id/password", auth, authorize("admin"), async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || password.length < 6) {
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters" });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.password = password;
+    await user.save(); // This will trigger the pre-save hook to hash the password
+
+    res.json({ message: "Password updated successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update password" });
+  }
+});
+
 router.delete("/:id", auth, authorize("admin"), async (req, res) => {
   await User.findByIdAndDelete(req.params.id);
   res.json({ message: "User deleted" });

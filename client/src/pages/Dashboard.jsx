@@ -125,9 +125,6 @@ function TopNav({ user }) {
         <span style={brandText}>Steakz MIS</span>
       </div>
       <div style={navLinks}>
-        <Link to="/dashboard" style={navLink}>
-          <span>📊</span> Dashboard
-        </Link>
         <Link to="/inventory" style={navLink}>
           <span>📦</span> Inventory
         </Link>
@@ -140,7 +137,7 @@ function TopNav({ user }) {
           </Link>
         )}
         <button onClick={logout} style={logoutBtn}>
-          <span>🚪</span> Logout
+          <span>⏻</span> Logout
         </button>
       </div>
     </nav>

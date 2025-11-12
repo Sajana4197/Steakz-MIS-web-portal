@@ -51,7 +51,10 @@ export default function Inventory() {
         <Link to="/dashboard" style={backBtn}>
           <span>←</span> Back to Dashboard
         </Link>
-        <h1 style={pageTitle}>Inventory Management</h1>
+        <div style={titleContainer}>
+          <span style={titleIcon}>📦</span>
+          <h1 style={pageTitle}>Inventory</h1>
+        </div>
       </div>
 
       {(user.role === "admin" || user.role === "manager") && (
@@ -165,10 +168,21 @@ const backBtn = {
   marginBottom: "16px",
 };
 
+const titleContainer = {
+  display: "flex",
+  alignItems: "center",
+  gap: "16px",
+  marginTop: "16px",
+};
+
+const titleIcon = {
+  fontSize: "42px",
+};
+
 const pageTitle = {
   fontSize: "36px",
   fontWeight: "700",
-  margin: "16px 0 0 0",
+  margin: 0,
   background: "linear-gradient(135deg, #fff, #cbd5e1)",
   WebkitBackgroundClip: "text",
   WebkitTextFillColor: "transparent",
